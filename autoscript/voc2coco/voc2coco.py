@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 # pip install lxml
 
 import sys
@@ -7,6 +6,7 @@ import os
 import json
 import xml.etree.ElementTree as ET
 import glob
+import argparse
 
 START_BOUNDING_BOX_ID = 1
 PRE_DEFINE_CATEGORIES = None
@@ -16,7 +16,6 @@ PRE_DEFINE_CATEGORIES = None
 #  "cow": 10, "diningtable": 11, "dog": 12, "horse": 13,
 #  "motorbike": 14, "person": 15, "pottedplant": 16,
 #  "sheep": 17, "sofa": 18, "train": 19, "tvmonitor": 20}
-
 
 def get(root, name):
     vars = root.findall(name)
@@ -138,14 +137,15 @@ def convert(xml_files, json_file):
 
 
 if __name__ == "__main__":
-    import argparse
 
     parser = argparse.ArgumentParser(
         description="Convert Pascal VOC annotation to COCO format."
     )
-    parser.add_argument("xml_dir", help="Directory path to xml files.", type=str)
-    parser.add_argument("json_file", help="Output COCO format json file.", type=str)
+
+    parser.add_argument('--xml_dir', default="VOC/Annotations")
+    parser.add_argument('--json_file', default="coco/output.json")
     args = parser.parse_args()
+
     xml_files = glob.glob(os.path.join(args.xml_dir, "*.xml"))
 
     # If you want to do train/test split, you can pass a subset of xml files to convert function.

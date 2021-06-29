@@ -5,6 +5,8 @@
 @Create time: 2021-06-02 10:04
 """
 import math
+import os
+import re
 from functools import wraps
 from time import sleep
 
@@ -314,20 +316,16 @@ class UsbMk:
         self.click()
 
     @mouse(mouseup=False)
-    def move_to_init(self, duration=0.0, mousedown=False):
+    def move_to_init(self, mousedown=False):
         """
         恢复鼠标至初始位置，默认左上角
-        @param duration: 平移时间
         @param mousedown: 是否按下鼠标
         """
         # code = f"{'01' if mousedown else '00'} 80 7f 00"
         code = f"{'01' if mousedown else '00'} 80 80 00"
-        num = math.ceil(self.WIDTH / 127)  # 取最大步长
-        single_time = duration / num
         single_code = self._mouse_sum(code)
         for _ in range(0, math.ceil(self.WIDTH / 127)):
             self._write(single_code)
-            sleep(single_time)
 
     @staticmethod
     def coord_sequence(list1: tuple, list2: tuple):
@@ -432,13 +430,12 @@ class UsbMk:
     @classmethod
     def __step_nums(cls, x, y):
         """"计算移动部署"""
-        if x <= 127 and y <= 127:  # 横纵坐标小于等于最大步长,则移动一次
-            return 1
+        if min(x, y) < 8:
+            return min(x, y) if min(x, y) != 0 else 8
+        elif x <= 127 and y <= 127:  # 横纵坐标小于等于最大步长,则移动一次
+            return 8
         elif min(x, y) == 0:
-            if max(x, y) <= 127:
-                return 1
-            else:
-                return 8
+            return 8
         elif max(x, y) / min(x, y) < 127:  # 横纵坐标相除小于127,表示相同步数时,存在x,y平移均小于127的情况
             step = cls.__hcf(x, y)
             return step
@@ -446,28 +443,28 @@ class UsbMk:
             return min(x, y)
 
     @mouse(mouseup=False)
-    def move_rel(self, x: int, y: int, duration=0.0, mousedown=False):
+    def move_rel(self, x: int, y: int, mousedown=False):
         """
         移动鼠标至相对坐标
         @param x: 横向移动， 负数向左，0x80 <= 字节 3 <= 0xFF 正数向右 ：0x01 <= 字节 3 <= 0x7F
         @param y: 纵向移动， 负数向下，0x80 <= 字节 3 <= 0xFF 正数向上 0x01 <= 字节 3 <= 0x7F
-        @param duration: 平移时间
         @param mousedown: 是否按下鼠标
         @return
         """
-        x, y = int(x/2), int(y/2)
+        # if x > 127 or y > 127:
+        x, y = int(x), int(y)
         x_px = abs(x)
         y_px = abs(y)
-        step = self.__step_nums(x_px, y_px)
-        sleep_amount = duration / step
+        # step = self.__step_nums(x_px, y_px)
+        step = 8
         x_answer, x_remainder = divmod(x_px, step)  # 求商和余
         y_answer, y_remainder = divmod(y_px, step)  # 求商和余
         # 计算x轴平移code
-        code_x = x_answer if x > 0 else (255 - x_answer)
-        last_x = x_remainder if x > 0 else (255 - x_remainder)
+        code_x = x_answer if x >= 0 else (255 - x_answer)
+        last_x = x_remainder if x >= 0 else (255 - x_remainder)
         # 计算y轴平移code
-        code_y = y_answer if x > 0 else (255 - y_answer)
-        last_y = y_remainder if x > 0 else (255 - y_remainder)
+        code_y = y_answer if y >= 0 else (255 - y_answer)
+        last_y = y_remainder if y >= 0 else (255 - y_remainder)
         # 前面N次平移指令
         direction = (
             f"{'01' if mousedown else '00'} {hex(code_x)[2:]} {hex(code_y)[2:]} 00"
@@ -475,35 +472,36 @@ class UsbMk:
         direction_code = self._mouse_sum(direction)
         # 最后一次平移指令
         last_code = self._mouse_sum(f"{'01' if mousedown else '00'} {hex(last_x)[2:]} {hex(last_y)[2:]} 00")
+        # print(f"step {step}")
+        # print(f"code {direction_code}")
+        # print(f"last code {last_code}")
         for _ in range(0, step):
-            sleep(sleep_amount)
             self._write(direction_code)
         self._write(last_code)
 
     @mouse(mouseup=False)
-    def move_to(self, x: int, y: int, duration=0.0, mousedown=False):
+    def move_to(self, x: int, y: int, mousedown=False):
         """
         以屏幕左上角为圆心坐标移动鼠标至屏幕绝对坐标
         @param x: x轴像素
         @param y: y轴像素
-        @param duration: 平移时间
         @param mousedown: 是否按下鼠标
         @return
         """
         self.move_to_init(mousedown=mousedown)
-        self.move_rel(x, y, duration=duration, mousedown=mousedown)
+        self.move_rel(x, y, mousedown=mousedown)
 
     @mouse()
-    def drag_to(self, x, y, duration=0.0):
+    def drag_to(self, x, y):
         """拖动到绝对坐标位置"""
         self.mouse_down()
-        self.move_to(x, y, duration=duration, mousedown=True)
+        self.move_to(x, y, mousedown=True)
 
     @mouse()
-    def drag_rel(self, x, y, duration=0.0):
+    def drag_rel(self, x, y):
         """按住拖动到相对坐标位置"""
         self.mouse_down()
-        self.move_rel(x, y, duration=duration, mousedown=True)
+        self.move_rel(x, y, mousedown=True)
 
     @keyboard()
     def input_text(self, text: str):
@@ -519,9 +517,88 @@ class UsbMk:
         self._write(self._keyboard_sum())
         self.ser.close()
 
+def run():
+    a = os.popen(
+        f'sshpass -p "1" ssh litaoa@10.8.13.37 "cd /home/litaoa/Desktop/ && python3 test.py"').read()
+    return re.findall("x=(.*),", a)[0]
+
 
 usb_mk = UsbMk("/dev/ttyACM0", 19200)
 
 if __name__ == "__main__":
-    # usb_mk.move_to(1920, 1080)
-    usb_mk.drag_rel(32.88,1033.55)
+    # for j in range(0, 127):
+    #     with open(f"{j}.txt", "w") as f:
+    #         for i in range(0, 1000):
+    #             print("==================")
+    #             usb_mk.move_to_init()
+    #             a = int(run())
+    #             # print(f"start {a}")
+    #             n = j
+    #             usb_mk.move_to(j, 0)  # 移动到dock文管坐标
+    #             m = run()
+    #             print(f"end {j}")
+    #             b = abs(int(m) - a - n)
+    #             print(f"误差{b}")
+    #             f.writelines(f"end {j}, 误差 {b}\n")
+    usb_mk.move_to_init()
+    for i in range(1, 8):
+        print("==================")
+        # print(f"start {a}")
+        n = 127
+        usb_mk.move_rel(n, 0)  # 移动到dock文管坐标
+        m = run()
+        print(f"end {m}")
+        b = abs(int(m) - n*i)
+        print(f"误差{b}")
+        import pyautogui
+        # usb_mk.move_rel(37, 0)  # 移动到dock文管坐标
+        # m = run()
+        # print(f"end {m}")
+        # b = abs(int(m) - a - n*2)
+        # print(f"误差{b}")
+        # usb_mk.move_rel(37, 0)  # 移动到dock文管坐标
+        # m = run()
+        # print(f"end {m}")
+        # b = abs(int(m) - a - n*3)
+        # print(f"误差{b}")
+        # usb_mk.move_rel(37, 0)  # 移动到dock文管坐标
+        # m = run()
+        # print(f"end {m}")
+        # b = abs(int(m) - a - n*4)
+        # print(f"误差{b}")
+        # usb_mk.move_rel(37, 0)  # 移动到dock文管坐标
+        # m = run()
+        # print(f"end {m}")
+        # b = abs(int(m) - a - n*5)
+        # print(f"误差{b}")
+        # usb_mk.move_rel(37, 0)  # 移动到dock文管坐标
+        # m = run()
+        # print(f"end {m}")
+        # b = abs(int(m) - a - n*6)
+        # print(f"误差{b}")
+
+    # print("==================")
+    # usb_mk.move_to_init()
+    # a = int(run())
+    # print(f"start {a}")
+    # n = 5
+    # usb_mk.move_to(n, 0)  # 移动到dock文管坐标
+    # m = run()
+    # print(f"end {m}")
+    # b = abs(int(m) - a - n)
+    # print(f"误差{b}")
+    # if b > c:
+    #     c = b
+    # print(c)
+
+    # for i in range(200, 300, 5):
+    #     usb_mk.move_to(600, i)
+    #     usb_mk.drag_rel(200, 0)  # 移动到dock文管坐标
+    # usb_mk.drag_rel(2,2)
+    # usb_mk.mouse_down()
+    # for _ in range(0, 20):
+    #     usb_mk._write("57 AB 00 05 05 01 00 ff ff 00 0b")
+    # sleep(2)
+    #
+    # # usb_mk._write("57 AB 00 05 05 01 00 ff ff 00 0b")
+    # usb_mk.mouse_up()

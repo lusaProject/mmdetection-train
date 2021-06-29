@@ -1,0 +1,35 @@
+{
+    "images": [
+        {
+            "file_name": "01.png",
+            "height": 540,
+            "width": 960,
+            "id": 1
+        }
+    ],
+    "type": "instances",
+    "annotations": [
+        {
+            "area": 131150,
+            "iscrowd": 0,
+            "image_id": 1,
+            "bbox": [
+                358,
+                42,
+                430,
+                305
+            ],
+            "category_id": 1,
+            "id": 1,
+            "ignore": 0,
+            "segmentation": []
+        }
+    ],
+    "categories": [
+        {
+            "supercategory": "none",
+            "id": 0,
+            "name": "window"
+        }
+    ]
+}

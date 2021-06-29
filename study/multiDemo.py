@@ -14,9 +14,6 @@ checkpoint_file = 'checkpoints/faster_rcnn_r101_fpn_2x_coco_20200504.pth'
 # config_file = 'configs/yolo/yolov3_d53_mstrain-416_273e_coco.py'
 # checkpoint_file = 'checkpoints/yolov3_d53_mstrain-416_273e_coco.pth'
 
-# config_file = 'xianjin/mask_rcnn_r101_fpn_2x_coco.py'
-# checkpoint_file = 'xianjin/epoch_24.pth'
-
 # 初始化模型
 # device='cuda:0'
 model = init_detector(config_file, checkpoint_file, device='cpu')
