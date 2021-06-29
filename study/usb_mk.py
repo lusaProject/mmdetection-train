@@ -526,6 +526,10 @@ def run():
 usb_mk = UsbMk("/dev/ttyACM0", 9600)
 
 if __name__ == "__main__":
-    usb_mk.move_to(400, 500)
+    x = 5
+    y = 0
+    usb_mk.move_to(x, y)
+
+    print( 'Point(x={0}, y={1})'.format(x, y))
     run()
     # usb_mk.drag_rel(32.88,1033.55)
