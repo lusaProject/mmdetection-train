@@ -1,4 +1,4 @@
-MMDetection 是一个基于 PyTorch 的开源目标检测工具箱。它是由中国科学院大学的多媒体实验室开发和维护的。MMDetection 提供了一个灵活的、高效的和易于扩展的框架，可以加速计算机视觉研究领域的目标检测、实例分割和目标跟踪等任务的开发。
+MMDetection 是一个基于 PyTorch 的开源目标检测工具箱。MMDetection 提供了一个灵活的、高效的和易于扩展的框架，可以加速计算机视觉研究领域的目标检测、实例分割和目标跟踪等任务的开发。
 
 核心特点
 丰富的模型库：MMDetection 支持多种目标检测模型，包括但不限于 Faster R-CNN、SSD、RetinaNet、Cascade R-CNN、YOLOv3、Mask R-CNN 等。这为研究者和开发者提供了广泛的选择。
